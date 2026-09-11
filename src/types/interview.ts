@@ -8,7 +8,9 @@ export interface Interview  {
   workExDetails: string[];
   jobTitle:string;
   createdAt:Date;
-  status:string
+  status:string;
+  /** True once inngest has written the graded report. Derived, not stored. */
+  insightsReady?: boolean;
 }
 export interface InterviewCardProps {
   interview: Interview;

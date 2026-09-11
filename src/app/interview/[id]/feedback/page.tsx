@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Chart from '@/components/Chart'
 import { auth } from '@/app/auth'
 import { redirect } from 'next/navigation'
+import FeedbackPending from '@/components/interview/FeedbackPending'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -29,20 +30,17 @@ const page = async ({ params }: PageProps) => {
 
 
   const arr = det?.extracted?.parameterScores
-  console.log(det)
 
-  const labels = Object.keys(arr!) as string[]
-  const data = Object.values(arr!) as number[]
-  console.log(data,labels)
-
-  if(!det){
-    return (
-      <div className='flex flex-col gap-2 font-semibold text-2xl'>
-        <span>Feedback Results would be Ready soon!</span>
-        <span>Please Come back in some time</span>
-      </div>
-    )
+  // `status` flips to 'completed' the moment answers are saved, but the scores
+  // only exist once the inngest `generateInsights` run finishes. Anything that
+  // reads `extracted` must come AFTER this guard — reading it above was what
+  // crashed the page with "Cannot convert undefined or null to object".
+  if (!det || !arr) {
+    return <FeedbackPending interviewId={id} hasAnswers={!!det} />
   }
+
+  const labels = Object.keys(arr) as string[]
+  const data = Object.values(arr) as number[]
 
   return (
     <div className='flex flex-col'>

@@ -8,7 +8,9 @@ import { DBUser } from "@/types/user";
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
     adapter: MongoDBAdapter(client),
-    debug:true,
+    // Off by default: Auth.js debug logging prints provider clientId/clientSecret
+    // in full. Opt in with AUTH_DEBUG=true only when you need it locally.
+    debug: process.env.AUTH_DEBUG === 'true',
     session: {
         strategy: "jwt"
     },

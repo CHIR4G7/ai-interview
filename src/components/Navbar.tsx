@@ -85,6 +85,21 @@ const Navbar =  () => {
         </NavigationMenu>
 </>}
 
+{status=='unauthenticated' && (
+        <NavigationMenu>
+          <NavigationMenuList className='flex flex-row space-x-3 pr-2'>
+            <NavigationMenuItem>
+              <Link href='/login' className='text-sm font-medium text-neutral-700 hover:text-blue-500'>Log in</Link>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <Button asChild variant='default' className='rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-600 hover:to-purple-600'>
+                <Link href='/signup'>Get Started</Link>
+              </Button>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+)}
+
       </div>
 
     </nav>

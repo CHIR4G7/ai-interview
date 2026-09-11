@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from './ui/button'
 import { FileText } from 'lucide-react';
 import { MessageCircleCode } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -74,12 +75,31 @@ const InterviewCard = async ({ interview }: InterviewCardProps) => {
           </div>
            <div className='flex flex-row-reverse gap-3 mr-2'>
          
-          <Link href={`/interview/${interview._id}/feedback`} className={`${interview?.status==='ready' ? 'hidden' : ''}`}>
-           <Tooltip>
-            <TooltipTrigger><FileText className='cursor-pointer'/></TooltipTrigger>
-            <TooltipContent>View Feedback</TooltipContent>
-          </Tooltip>
-          </Link>
+          {/* The feedback link only opens once the graded report actually exists.
+              `status === 'completed'` is set the instant answers are saved, so
+              gating on it alone sent users to a page with no scores yet. */}
+          {interview?.status !== 'ready' && (
+            interview?.insightsReady ? (
+              <Link href={`/interview/${interview._id}/feedback`}>
+                <Tooltip>
+                  <TooltipTrigger><FileText className='cursor-pointer'/></TooltipTrigger>
+                  <TooltipContent>View Feedback</TooltipContent>
+                </Tooltip>
+              </Link>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    aria-disabled
+                    className='cursor-not-allowed opacity-40'
+                  >
+                    <Loader2 className='animate-spin' />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Scoring your answers — feedback available shortly</TooltipContent>
+              </Tooltip>
+            )
+          )}
          
          <Link href={`/interview/${interview._id}/perform`} className={`${interview?.status==='completed' ? 'hidden' : ''}`}>
          <Tooltip>

@@ -1,13 +1,13 @@
 import Image from "next/image";
 // import { useSession } from "next-auth/react";
 import { auth } from "@/app/auth";
-import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { IoMdAdd } from "react-icons/io";
 import Link from "next/link";
 import { getUserInterviews } from "./actions";
 import InterviewCard from "@/components/InterviewCard";
 import Sidebar from "@/components/Sidebar";
+import LandingPage from "@/components/landing/LandingPage";
 
 type User = {
   name:string,
@@ -20,7 +20,7 @@ export default async function Home() {
 
   const session = await auth();
   if (!session?.user) {
-    redirect('/login')
+    return <LandingPage />
   }
   const user = session?.user as User
   const interviews = await getUserInterviews()
