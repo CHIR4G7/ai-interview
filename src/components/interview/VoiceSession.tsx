@@ -51,6 +51,13 @@ const VoiceSession = ({ agoraData, rtmClient, onTranscriptChange }: Props) => {
   const client = useRTCClient()
   const remoteUsers = useRemoteUsers()
 
+  // When an avatar vendor is configured the agent publishes a video track as
+  // well as audio. Render that instead of the orb — a face is the whole point.
+  const agentUser = remoteUsers.find(
+    (u) => String(u.uid) === String(AGENT_RTC_UID),
+  )
+  const hasAvatar = Boolean(agentUser?.hasVideo)
+
   // StrictMode double-invokes effects in development. Without this guard the
   // join and mic-track hooks initialise twice, producing duplicate clients and
   // tracks that are very hard to recover from. The first (fake) mount's timer is
@@ -307,9 +314,16 @@ const VoiceSession = ({ agoraData, rtmClient, onTranscriptChange }: Props) => {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      {/* The agent publishes audio only; RemoteUser plays it back. */}
+      {/* Audio always plays. Video is only rendered for the agent, and only
+          inside the avatar frame below — rendering it here too would duplicate it. */}
       {remoteUsers.map((user) => (
-        <RemoteUser key={user.uid} user={user} playAudio playVideo={false} />
+        <RemoteUser
+          key={user.uid}
+          user={user}
+          playAudio
+          playVideo={false}
+          style={{ display: 'none' }}
+        />
       ))}
 
       {sessionError && (
@@ -321,7 +335,32 @@ const VoiceSession = ({ agoraData, rtmClient, onTranscriptChange }: Props) => {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
         {/* ---------- left rail: presence + controls ---------- */}
         <div className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-5">
-          <InterviewerOrb state={interviewerState} />
+          {hasAvatar && agentUser ? (
+            <div className="flex flex-col gap-2">
+              <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-neutral-200 bg-neutral-900">
+                <RemoteUser
+                  user={agentUser}
+                  playAudio={false}
+                  playVideo
+                  className="h-full w-full object-cover"
+                />
+                <span className="absolute left-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">
+                  Your interviewer
+                </span>
+              </div>
+              <span className="text-center text-xs font-medium text-neutral-500">
+                {interviewerState === 'speaking'
+                  ? 'Speaking'
+                  : interviewerState === 'thinking'
+                    ? 'Thinking'
+                    : interviewerState === 'listening'
+                      ? 'Listening'
+                      : 'Ready'}
+              </span>
+            </div>
+          ) : (
+            <InterviewerOrb state={interviewerState} />
+          )}
 
           <CameraPanel />
 

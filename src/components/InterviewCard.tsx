@@ -1,121 +1,137 @@
 import React from 'react'
-import { InterviewCardProps } from '@/types/interview'
-import { getLogo } from '@/lib/utils'
-import Image from 'next/image'
-import { Badge } from "@/components/ui/badge"
-import { Button } from './ui/button'
-import { FileText } from 'lucide-react';
-import { MessageCircleCode } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import Link from 'next/link'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
+import { InterviewCardProps } from '@/types/interview'
+import { Badge } from '@/components/ui/badge'
+import {
+  FileText,
+  Mic,
+  Loader2,
+  Building2,
+  CalendarDays,
+  ArrowRight,
+} from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog'
 
 function capitalizeFirstWord(str: string) {
-  if (!str) return "";
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  if (!str) return ''
+  return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
-const InterviewCard = async ({ interview }: InterviewCardProps) => {
-  const res = await getLogo(interview.companyName)
-  const image = res?.image || 'https://picsum.photos/200/300'
+const STATUS_STYLE: Record<string, string> = {
+  completed: 'bg-green-50 text-green-700 border-green-200',
+  ready: 'bg-blue-50 text-blue-700 border-blue-200',
+}
 
-  const createdAt = new Date(interview.createdAt);
-  const formatted = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-${String(createdAt.getDate()).padStart(2, '0')} ${String(createdAt.getHours()).padStart(2, '0')}:${String(createdAt.getMinutes()).padStart(2, '0')}`;
+const InterviewCard = ({ interview }: InterviewCardProps) => {
+  const created = new Date(interview.createdAt)
+  const formatted = created.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 
-  const skills = interview.skills
-  let renderSkills;
-  if(skills.length>6){
-    renderSkills = skills.slice(0,8)
-  }else{
-    renderSkills = skills
-  }
+  const skills = interview.skills ?? []
+  const shown = skills.slice(0, 4)
+  const remaining = skills.length - shown.length
+
+  const status = interview.status ?? 'ready'
+  const isCompleted = status === 'completed'
+  const gradingPending = isCompleted && !interview.insightsReady
 
   return (
-    <div className='border-2 border-black rounded-sm bg-gray-50 m-4 p-2 flex flex-row gap-4 w-[25vw] '>
-
-
-      <div className='flex flex-col mt-2 ml-3 gap-3'>
-        <div className='flex flex-col'>
-          <span className='text-xl font-bold'> {capitalizeFirstWord(interview.companyName)}</span>
-          <span className='text-md'>{interview.jobTitle}</span>
-        </div>
-        <div className='flex flex-wrap gap-2'>
-          <span className='text-md font-semibold'>Skills :</span>
-          <div className='flex flex-wrap gap-2'>{renderSkills.map((skill)=><Badge variant='outline' key={skill}>{skill}</Badge>)} <span className='text-sm mt-1 italic hover:underline hover:text-blue-700' >
-            <Dialog>
-  <DialogTrigger>...more</DialogTrigger>
-  <DialogContent >
-    <DialogHeader className='flex flex-col gap-2'>
-      <DialogTitle>All Skills for this Interview.</DialogTitle>
-      <DialogDescription className='flex flex-wrap gap-1'>
-       {skills.map((skill)=><Badge variant='outline' key={skill}>{skill}</Badge>)}
-      </DialogDescription>
-    </DialogHeader>
-  </DialogContent>
-</Dialog>
-            </span></div>
-        </div>
-        <div className='flex flex-col'>
-           <span className='text-xs italic'>
-            Created At {formatted}
-          </span>
-          
-        </div>
-
-        <div className='flex flex-row justify-between' >
-          <div>
-            <span>
-            <Badge variant='outline' className={`${interview?.status==='completed' ? 'bg-green-400' : 'bg-yellow-400'}`}>{interview?.status}</Badge>
-          </span>
+    <div className="group flex flex-col justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-lg hover:shadow-neutral-900/5">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-row items-start justify-between gap-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-base font-bold leading-tight text-neutral-900">
+              {interview.jobTitle}
+            </span>
+            <span className="flex flex-row items-center gap-1.5 text-sm text-neutral-500">
+              <Building2 size={13} className="shrink-0 text-neutral-400" />
+              {capitalizeFirstWord(interview.companyName)}
+            </span>
           </div>
-           <div className='flex flex-row-reverse gap-3 mr-2'>
-         
-          {/* The feedback link only opens once the graded report actually exists.
-              `status === 'completed'` is set the instant answers are saved, so
-              gating on it alone sent users to a page with no scores yet. */}
-          {interview?.status !== 'ready' && (
-            interview?.insightsReady ? (
-              <Link href={`/interview/${interview._id}/feedback`}>
-                <Tooltip>
-                  <TooltipTrigger><FileText className='cursor-pointer'/></TooltipTrigger>
-                  <TooltipContent>View Feedback</TooltipContent>
-                </Tooltip>
-              </Link>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    aria-disabled
-                    className='cursor-not-allowed opacity-40'
-                  >
-                    <Loader2 className='animate-spin' />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Scoring your answers — feedback available shortly</TooltipContent>
-              </Tooltip>
-            )
+          <Badge
+            variant="outline"
+            className={`shrink-0 capitalize ${STATUS_STYLE[status] ?? 'bg-neutral-50 text-neutral-600'}`}
+          >
+            {status}
+          </Badge>
+        </div>
+
+        <div className="flex flex-row flex-wrap gap-1.5">
+          {shown.map((skill) => (
+            <span
+              key={skill}
+              className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-0.5 text-[11px] font-medium text-neutral-600"
+            >
+              {skill}
+            </span>
+          ))}
+          {remaining > 0 && (
+            <Dialog>
+              <DialogTrigger className="rounded-full border border-neutral-200 bg-white px-2.5 py-0.5 text-[11px] font-medium text-blue-600 hover:bg-blue-50">
+                +{remaining} more
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader className="flex flex-col gap-2">
+                  <DialogTitle>Skills for this interview</DialogTitle>
+                  <DialogDescription className="flex flex-wrap gap-1.5 pt-2">
+                    {skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs text-neutral-700"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
           )}
-         
-         <Link href={`/interview/${interview._id}/perform`} className={`${interview?.status==='completed' ? 'hidden' : ''}`}>
-         <Tooltip>
-            <TooltipTrigger><MessageCircleCode className='cursor-pointer'/></TooltipTrigger>
-            <TooltipContent>Give Interview</TooltipContent>
-          </Tooltip>
-            
-         </Link>
-        
         </div>
-
-        </div>
-       
-
       </div>
 
+      <div className="flex flex-row items-center justify-between border-t border-neutral-100 pt-3">
+        <span className="flex flex-row items-center gap-1.5 text-[11px] text-neutral-400">
+          <CalendarDays size={12} />
+          {formatted}
+        </span>
+
+        {isCompleted ? (
+          gradingPending ? (
+            <span className="flex flex-row items-center gap-1.5 text-xs font-medium text-neutral-400">
+              <Loader2 size={13} className="animate-spin" />
+              Scoring…
+            </span>
+          ) : (
+            <Link
+              href={`/interview/${interview._id}/feedback`}
+              className="flex flex-row items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50"
+            >
+              <FileText size={13} />
+              View feedback
+            </Link>
+          )
+        ) : (
+          <Link
+            href={`/interview/${interview._id}/perform`}
+            className="flex flex-row items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-transform group-hover:scale-[1.03]"
+          >
+            <Mic size={13} />
+            Start
+            <ArrowRight size={12} />
+          </Link>
+        )}
+      </div>
     </div>
   )
 }

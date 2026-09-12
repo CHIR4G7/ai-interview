@@ -129,6 +129,21 @@ export async function POST(request: NextRequest) {
         data_channel: 'rtm',
         enable_error_message: true,
         enable_metrics: true,
+        // A visible interviewer changes how the practice feels — being looked
+        // at is most of what makes a real interview hard. Off unless a vendor
+        // is configured, since each avatar vendor needs its own credentials and
+        // bills separately from the voice pipeline.
+        ...(process.env.AGORA_AVATAR_VENDOR
+          ? {
+              avatar: {
+                enable: true,
+                vendor: process.env.AGORA_AVATAR_VENDOR,
+                params: JSON.parse(
+                  process.env.AGORA_AVATAR_PARAMS ?? '{}',
+                ) as Record<string, unknown>,
+              },
+            }
+          : {}),
       },
     })
       .withStt(new DeepgramSTT({ model: 'nova-3', language: 'en' }))
