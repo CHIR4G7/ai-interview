@@ -36,11 +36,16 @@ export const getQuestions = async (interviewId:string)=>{
     return interviewQuestions
 }
 
-export const setAnswers = async (data:Record<string, string>[],id:string)=>{
+export const setAnswers = async (
+    data:Record<string, string>[],
+    id:string,
+    transcript?:unknown[]
+)=>{
     try {
         const response = await axios.post(`${baseURL}/api/setanswers`,{
             data:data,
-            id:id
+            id:id,
+            transcript:transcript
         })
         // console.log(data)
 

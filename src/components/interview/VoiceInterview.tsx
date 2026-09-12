@@ -192,7 +192,9 @@ const VoiceInterview = ({
       const aligned = alignAnswersToQuestions(turnsRef.current, questions ?? [])
       if (hasAnyAnswer(aligned)) {
         toast('Submitting your answers')
-        await setAnswers(aligned, interviewId)
+        // Settled turns only — a half-spoken turn would skew pace and duration.
+        const transcript = turnsRef.current.filter((t) => !t.live)
+        await setAnswers(aligned, interviewId, transcript)
         toast.success('Answers submitted — generating your feedback')
       } else {
         toast('Interview ended. No answers were recorded, so nothing was sent for analysis.')

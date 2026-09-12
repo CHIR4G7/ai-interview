@@ -104,6 +104,7 @@ export function mergeTranscript(
       previous.text = `${previous.text} ${turn.text}`.replace(/\s+/g, ' ').trim()
       previous.live = turn.live
       previous.interrupted = previous.interrupted || turn.interrupted
+      previous.endedAt = turn.at
       continue
     }
     merged.push({
@@ -112,6 +113,7 @@ export function mergeTranscript(
       speaker: turn.speaker,
       text: turn.text,
       createdAt: turn.createdAt,
+      endedAt: turn.at,
       interrupted: turn.interrupted,
       live: turn.live,
       groupKey: turn.groupKey,

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request:NextRequest) {
     const body = await request.json()
-    const {data,id} = body
+    const {data,id,transcript} = body
 
     const objid = new ObjectId(id)
     // console.log("api me ",data)
@@ -14,7 +14,14 @@ export async function POST(request:NextRequest) {
             {interviewId:id},
             {
                 $set:{
-                    answers:data
+                    answers:data,
+                    // Voice interviews also store the raw turn list so delivery
+                    // metrics (pace, fillers, thinking time) can be derived — and
+                    // recomputed later as those metrics improve. Text interviews
+                    // send no transcript, so the field is left untouched.
+                    ...(Array.isArray(transcript) && transcript.length > 0
+                        ? { transcript }
+                        : {}),
                 }
             }
         )

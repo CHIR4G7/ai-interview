@@ -303,6 +303,7 @@ export const generateInsights = inngest.createFunction(
         2. **Scores for each of the 5 parameters** (0–10).  
         3. **Advice for improvement** (max 100 words per question) for **each question in the given array**.  
         4. **Overall verdict** (max 50 words).  
+        5. **A score out of 10 for EACH question**, in the same order as the given array. This powers a per-question breakdown, so the array length must exactly match the number of questions given.  
 
         ---
 
@@ -324,6 +325,12 @@ export const generateInsights = inngest.createFunction(
             {
                 "question": "string",
                 "advice": "string"
+            }
+            ],
+            "perQuestionScores": [
+            {
+                "question": "string",
+                "score": number
             }
             ],
             "overallVerdict": "string"

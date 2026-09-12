@@ -16,6 +16,8 @@ export type TranscriptTurn = {
   speaker: 'candidate' | 'interviewer'
   text: string
   createdAt?: number
+  /** When the last fragment of this turn landed. Needed for duration metrics. */
+  endedAt?: number
   interrupted: boolean
   /** Still being spoken — rendered as a live, dimmed bubble. */
   live: boolean

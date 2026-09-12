@@ -6,6 +6,8 @@ import Chart from '@/components/Chart'
 import { auth } from '@/app/auth'
 import { redirect } from 'next/navigation'
 import FeedbackPending from '@/components/interview/FeedbackPending'
+import DeliveryPanel from '@/components/interview/DeliveryPanel'
+import ContentInsights from '@/components/interview/ContentInsights'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -65,18 +67,32 @@ second
             <TabsList className='w-full flex flex-row gap-2'>
               <TabsTrigger value="visual">Visual Feedback</TabsTrigger>
               <TabsTrigger value="question">Question Wise Feedback</TabsTrigger>
+              <TabsTrigger value="delivery">Delivery</TabsTrigger>
+              <TabsTrigger value="insights">Answer Insights</TabsTrigger>
             </TabsList>
             <TabsContent value="visual" className='flex flex-col gap-5'>
               <div>
                 <span>
                   <span className='font-semibold'>Overall Verdict :</span> {det?.extracted?.overallVerdict}</span>
               </div>
-              <div style={{ width: '35vw', margin: '0 auto' }} className='flex flex-col'>
+              <div style={{ width: '35vw', height: '360px', margin: '0 auto' }} className='flex flex-col'>
                 <span className='font-bold text-2xl'>Various Areas you have been Scored Upon</span>
                 <Chart data={data} labels={labels}/>
               </div>
             </TabsContent>
             <TabsContent value="question"><FeedbackAccordion advice={det?.extracted?.adviceForImprovement}/></TabsContent>
+            <TabsContent value="delivery"><DeliveryPanel transcript={det?.transcript}/></TabsContent>
+            <TabsContent value="insights">
+              <ContentInsights
+                questions={det?.questions ?? []}
+                answers={det?.answers ?? []}
+                jobDesc={interview?.jobDesc}
+                projectContext={interview?.projectContext}
+                workExDetails={interview?.workExDetails}
+                transcript={det?.transcript}
+                perQuestionScores={det?.extracted?.perQuestionScores}
+              />
+            </TabsContent>
           </Tabs>
 
         </div>
