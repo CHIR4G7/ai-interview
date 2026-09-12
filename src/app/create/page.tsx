@@ -6,6 +6,7 @@ import { auth } from '../auth'
 import { getCredits } from '@/lib/credits'
 import { Button } from '@/components/ui/button'
 import Createform from './form'
+import RequestCreditsDialog from '@/components/credits/RequestCreditsDialog'
 
 const steps = [
   {
@@ -78,12 +79,10 @@ const CreatePage = async () => {
                 feedback are all still available.
               </span>
             </div>
-            <div className="mt-1 flex flex-row gap-2">
+            <div className="mt-1 flex flex-row flex-wrap justify-center gap-2">
+              <RequestCreditsDialog />
               <Button asChild variant="outline">
                 <Link href="/">Back to interviews</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/profile">View your profile</Link>
               </Button>
             </div>
           </div>

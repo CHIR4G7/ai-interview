@@ -13,6 +13,7 @@ import { auth } from '@/app/auth'
 import { getProfile } from './actions'
 import PerformanceSection from '@/components/profile/PerformanceSection'
 import { Button } from '@/components/ui/button'
+import RequestCreditsDialog from '@/components/credits/RequestCreditsDialog'
 
 const Stat = ({
   icon: Icon,
@@ -92,12 +93,15 @@ const ProfilePage = async () => {
             </div>
           </div>
 
-          <Button
-            asChild
-            className="h-11 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 font-semibold"
-          >
-            <Link href="/create">Start a new interview</Link>
-          </Button>
+          <div className="flex flex-row flex-wrap gap-2">
+            <RequestCreditsDialog variant="outline" className="h-11 rounded-xl" />
+            <Button
+              asChild
+              className="h-11 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 font-semibold"
+            >
+              <Link href="/create">Start a new interview</Link>
+            </Button>
+          </div>
         </div>
 
         {/* ---------- account stats ---------- */}
