@@ -102,7 +102,20 @@ export function alignAnswersToQuestions(
   return answers.map((parts) => ({ answer: parts.join(' ').trim() }))
 }
 
-/** True when the candidate actually said something worth grading. */
+/**
+ * True when the candidate actually said something worth grading.
+ *
+ * Deliberately stricter than "any non-empty string": a single "yes" picked up
+ * before the candidate gave up is not an interview, and submitting it spends a
+ * grading call on noise. Three words total is a low bar that still filters
+ * accidental submissions.
+ */
+const MIN_TOTAL_WORDS = 3
+
 export function hasAnyAnswer(answers: AlignedAnswer[]) {
-  return answers.some((a) => a.answer.trim().length > 0)
+  const totalWords = answers.reduce(
+    (n, a) => n + (a.answer.trim() ? a.answer.trim().split(/\s+/).length : 0),
+    0,
+  )
+  return totalWords >= MIN_TOTAL_WORDS
 }

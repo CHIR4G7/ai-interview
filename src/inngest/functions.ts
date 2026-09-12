@@ -5,6 +5,12 @@ import { ObjectId } from 'mongodb'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 import { modelUsed } from '@/constants/constants'
+import {
+    buildQnA,
+    answeredCount,
+    sanitizeInsights,
+    NO_ANSWER,
+} from '@/lib/insightsSanitizer'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? '')
 
@@ -140,16 +146,23 @@ export const generateInsights = inngest.createFunction(
 
     const questionsDoc = await db.collection("questions").findOne({interviewId:interviewId})
 
-    const length = questionsDoc?.answers.length
-    let qnaArr = []
+    // Driven by the questions, not the answers array. The old loop used
+    // `answers.length`, so a short answers array silently dropped questions and
+    // a missing one threw. Unanswered questions get an explicit sentinel.
+    const qnaArr = buildQnA(
+        questionsDoc?.questions ?? [],
+        questionsDoc?.answers ?? [],
+    )
 
-    for(let i=0;i<length;i++){
-        const obj = {
-            question:questionsDoc?.questions[i]?.question,
-            expectedAnswer:questionsDoc?.questions[i]?.expectedAnswer,
-            answer:questionsDoc?.answers[i]?.answer
-        }
-        qnaArr.push(obj)
+    // Nothing was answered — there is nothing to grade. Skip the LLM entirely
+    // rather than paying for a call that can only invent a score.
+    if (answeredCount(qnaArr) === 0) {
+        const extracted = sanitizeInsights({}, qnaArr)
+        await db.collection("questions").findOneAndUpdate(
+            { interviewId: interviewId },
+            { $set: { extracted } },
+        )
+        return { message: 'No answers recorded, scored as zero' }
     }
 
     // console.log(questionsDoc)
@@ -276,6 +289,12 @@ export const generateInsights = inngest.createFunction(
         - If the candidate’s answer is a direct copy-paste of the expected answer, score it **0**.  
         - Be realistic in scoring.
 
+        **CRITICAL — read carefully:**
+        - The \`expectedAnswer\` field is a reference for YOU. It is NOT something the candidate said. Never score the candidate as if they produced the expected answer.
+        - Score ONLY the text in the \`answer\` field.
+        - If \`answer\` is exactly \`${NO_ANSWER}\`, the candidate said nothing. That question scores **0**, and it must drag the overall score down. Do not invent content for it and do not give it credit.
+        - EVERY score you output — overallScore, each of the 5 parameters, and each per-question score — MUST be between 0 and 10 inclusive. Never output a value above 10 under any circumstance.
+
         ---
 
         **You will be provided**:  
@@ -370,11 +389,17 @@ export const generateInsights = inngest.createFunction(
 
         // console.log("extr",extracted)
 
+        // Model output is untrusted input. Clamp every score into 0-10, force
+        // unanswered questions to 0, and align the arrays to the questions we
+        // actually asked. Without this a hallucinated 15 was stored verbatim
+        // and rendered to the user as "15/10".
+        const safeExtracted = sanitizeInsights(extracted, qnaArr)
+
         const qid = await db.collection("questions").findOneAndUpdate(
             {interviewId:interviewId},
             {
                 $set:{
-                   extracted
+                   extracted: safeExtracted
                 }
             }
         )
