@@ -5,7 +5,8 @@ import axios from 'axios'
 import { ref, uploadBytesResumable } from "firebase/storage"
 import { storage } from "@/lib/firebase"
 import { inngest } from "@/inngest/client"
-import { ObjectId } from "mongodb"
+import db from "@/lib/db"
+import { spendCredit, refundCredit } from "@/lib/credits"
 
 
 type formD = {
@@ -25,7 +26,7 @@ const maxTries = 3;
 let attempt = 0;
 
 
-const sendCreateIngestEvent = async (id: ObjectId) => {
+const sendCreateIngestEvent = async (id: string) => {
 
   const attemptFunc = async () => {
     console.log(id)
@@ -53,42 +54,63 @@ const sendCreateIngestEvent = async (id: ObjectId) => {
 
 
 
+/**
+ * Creates the interview directly against the database.
+ *
+ * This used to POST to /api/create-interview. That was a server-to-server HTTP
+ * call, so the browser's session cookie was never attached — the moment the
+ * route started checking `auth()`, every create failed with 401. A server action
+ * already runs with the session, so the hop was pure overhead (and pinned a
+ * hardcoded production URL). Talking to Mongo directly removes both problems.
+ */
 export const createInterview = async (data: formD, projectContext: string[], workExDetails: string[]) => {
   const session = await auth()
-  // console.log(session?.user)
-  console.log("check workex", workExDetails)
-  console.log(baseURL)
+  const userId = session?.user?.id
+
+  if (!userId) {
+    return { ok: false as const, error: 'Your session expired. Please sign in again.', code: 'unauthorized' }
+  }
+
+  if (!data.jobDesc || !data.companyName || !data.skills?.length) {
+    return { ok: false as const, error: 'Please fill in every required field.', code: 'invalid' }
+  }
+
+  // Take the credit first; atomic, so it cannot go negative or be double spent.
+  const spend = await spendCredit(userId)
+  if (!spend.ok) {
+    return {
+      ok: false as const,
+      error:
+        spend.reason === 'no-credits'
+          ? 'You have no interview credits left.'
+          : 'We could not find your account.',
+      code: spend.reason,
+    }
+  }
+
   try {
-    const res = await axios.post(`${baseURL}/api/create-interview`, {
-      id: session?.user?.id,
+    const result = await db.db().collection("interviews").insertOne({
+      userId,
       jobDesc: data.jobDesc,
       skills: data.skills,
-      companyName: data.companyName,
-      projectContext: projectContext,
-      workExDetails: workExDetails,
       jobTitle: data.jobTitle,
-      createdAt: new Date()
+      companyName: data.companyName,
+      projectContext: projectContext ?? [],
+      workExDetails: workExDetails ?? [],
+      createdAt: Date.now(),
+      status: 'ready',
     })
-    // toast("Interview Created Successfully")
-    console.log('ye bangya question',res.data)
 
-    sendCreateIngestEvent(res.data.id)
+    // Must be a plain string: createQuestions stores this as `interviewId`, and
+    // every later lookup compares it against String(interview._id).
+    sendCreateIngestEvent(String(result.insertedId))
 
-    return { ok: true as const, id: String(res.data.id), newCredits: res.data.newCredits }
-
-  } catch (error: any) {
-    // Surface a usable message. The form previously ignored the return value
-    // and toasted success unconditionally, so a failed create — including
-    // running out of credits — looked like it had worked.
-    const status = error?.response?.status
-    const message =
-      status === 402
-        ? 'You have no interview credits left.'
-        : status === 401
-          ? 'Your session expired. Please sign in again.'
-          : error?.response?.data?.error ?? 'Interview could not be created.'
-    console.error('createInterview failed:', status, message)
-    return { ok: false as const, error: message, code: status === 402 ? 'no-credits' : 'error' }
+    return { ok: true as const, id: String(result.insertedId), newCredits: spend.remaining }
+  } catch (error) {
+    // Hand the credit back rather than charging for an interview that does not exist.
+    await refundCredit(userId)
+    console.error('createInterview failed:', error)
+    return { ok: false as const, error: 'Interview could not be created.', code: 'error' }
   }
 }
 
