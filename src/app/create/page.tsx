@@ -1,8 +1,10 @@
 import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ArrowLeft, FileText, MessagesSquare, LineChart } from 'lucide-react'
+import { ArrowLeft, FileText, MessagesSquare, LineChart, Coins } from 'lucide-react'
 import { auth } from '../auth'
+import { getCredits } from '@/lib/credits'
+import { Button } from '@/components/ui/button'
 import Createform from './form'
 
 const steps = [
@@ -25,7 +27,11 @@ const steps = [
 
 const CreatePage = async () => {
   const session = await auth()
-  if (!session?.user) redirect('/login')
+  const userId = session?.user?.id
+  if (!userId) redirect('/login')
+
+  // Read the live balance rather than trusting the session, which can be stale.
+  const credits = await getCredits(userId)
 
   return (
     <main className="relative w-full">
@@ -57,8 +63,40 @@ const CreatePage = async () => {
           </div>
         </div>
 
+        {credits <= 0 ? (
+          <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50 px-6 py-16 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+              <Coins size={22} />
+            </span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-lg font-bold text-amber-900">
+                You are out of interview credits
+              </span>
+              <span className="max-w-md text-sm leading-relaxed text-amber-800">
+                Each interview uses one credit. You have used all of yours, so
+                new interviews are paused for now — your past interviews and
+                feedback are all still available.
+              </span>
+            </div>
+            <div className="mt-1 flex flex-row gap-2">
+              <Button asChild variant="outline">
+                <Link href="/">Back to interviews</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/profile">View your profile</Link>
+              </Button>
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-row items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+              <Coins size={14} className="text-amber-500" />
+              <span>
+                <strong className="text-neutral-900">{credits}</strong> credit
+                {credits === 1 ? '' : 's'} left. This interview uses one.
+              </span>
+            </div>
             <Createform />
           </div>
 
@@ -83,6 +121,7 @@ const CreatePage = async () => {
             ))}
           </aside>
         </div>
+        )}
       </div>
     </main>
   )

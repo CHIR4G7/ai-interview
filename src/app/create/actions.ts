@@ -74,10 +74,21 @@ export const createInterview = async (data: formD, projectContext: string[], wor
 
     sendCreateIngestEvent(res.data.id)
 
-  } catch (error) {
-    console.log(error)
-    // toast("Interview Not Created")
-    return { error: error }
+    return { ok: true as const, id: String(res.data.id), newCredits: res.data.newCredits }
+
+  } catch (error: any) {
+    // Surface a usable message. The form previously ignored the return value
+    // and toasted success unconditionally, so a failed create — including
+    // running out of credits — looked like it had worked.
+    const status = error?.response?.status
+    const message =
+      status === 402
+        ? 'You have no interview credits left.'
+        : status === 401
+          ? 'Your session expired. Please sign in again.'
+          : error?.response?.data?.error ?? 'Interview could not be created.'
+    console.error('createInterview failed:', status, message)
+    return { ok: false as const, error: message, code: status === 402 ? 'no-credits' : 'error' }
   }
 }
 

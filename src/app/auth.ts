@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import client from "@/lib/db";
+import { ObjectId } from "mongodb";
 import { compare } from "bcrypt-ts"
 import { DBUser } from "@/types/user";
 
@@ -73,7 +74,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         })
     ],
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger }) {
             if (user) {
                 token.id = user.id;
                 token.email = user.email;
@@ -81,7 +82,19 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                 if("credits" in user){
                     token.credits = user.credits
                 }
-                
+
+            } else if (trigger === 'update' && token.id) {
+                // Credits were only ever written at sign-in, so the balance in
+                // the session (and the navbar pill) stayed frozen at whatever it
+                // was when the user logged in. Re-read it when the client calls
+                // update(), which the navbar does on every route change.
+                const db = client.db();
+                const fresh = await db
+                    .collection("users")
+                    .findOne({ _id: new ObjectId(token.id as string) }, { projection: { credits: 1 } });
+                if (fresh) {
+                    token.credits = fresh.credits;
+                }
             } else if (!token.id && token.email) {
 
                 const db = client.db();

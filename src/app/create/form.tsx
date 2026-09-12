@@ -68,8 +68,14 @@ const Createform = () => {
 
         try {
             const response = await createInterview(data,projectContext,workExDetails)
-            toast.success("Interview Created Succesfully!")
+            if (!response?.ok) {
+                toast.error(response?.error ?? 'Interview could not be created.')
+                if (response?.code === 'no-credits') router.refresh()
+                return
+            }
+            toast.success("Interview created! Questions are being generated.")
             router.push('/')
+            router.refresh()
         } catch (error) {
             toast.error("Interview Not Created!")
         }

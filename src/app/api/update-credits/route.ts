@@ -1,30 +1,24 @@
-import client from "@/lib/db";
+import { NextResponse } from "next/server";
+import { auth } from "@/app/auth";
+import { getCredits } from "@/lib/credits";
 
-import { ObjectId } from "mongodb";
-import { NextRequest,NextResponse } from "next/server";
-
-export async function POST(request:NextRequest){
-    const body = request.json()
-    const {userId} = await body
-
-    if(!userId){
-        return NextResponse.json({
-            error:'Invalid User ID'
-        },
-    {status:400})
+/**
+ * Returns the signed-in user's own credit balance.
+ *
+ * This previously took a `userId` from the request body with no auth check, so
+ * anyone could read any user's balance by guessing an id. The id now comes from
+ * the session only.
+ */
+export async function GET() {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    
-    const db = client.db();
-    const user = await db.collection('users').findOne({_id:new ObjectId(userId)})
+    return NextResponse.json({ credits: await getCredits(userId) }, { status: 200 })
+}
 
-    if(!user){
-        return NextResponse.json({
-            error:"User Not found"
-        },
-    {status:400})
-    }
-    return NextResponse.json({
-        credits:user.credits
-    },
-{status:200})
+/** Kept as POST for existing callers; the body is ignored. */
+export async function POST() {
+    return GET()
 }
